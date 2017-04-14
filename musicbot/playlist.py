@@ -31,16 +31,9 @@ class Playlist(EventEmitter):
     def clear(self):
         self.entries.clear()
 
-    async def add_entry(self, song_url, **meta):
-        """
-            Validates and adds a song_url to be played. This does not start the download of the song.
 
-            Returns the entry & the position it is in the queue.
 
-            :param song_url: The song url to add to the playlist.
-            :param meta: Any additional metadata to add to the playlist entry.
-        """
-
+    async def parse_entry(self, song_url, **meta):
         try:
             info = await self.downloader.extract_info(self.loop, song_url, download=False)
         except Exception as e:
@@ -81,6 +74,23 @@ class Playlist(EventEmitter):
             self.downloader.ytdl.prepare_filename(info),
             **meta
         )
+        return entry
+
+    async def add_next_entry(self, song_url, **meta):
+        entry = await self.parse_entry(song_url, **meta)
+        self._add_entry(entry, True)
+        return entry, 1
+
+    async def add_entry(self, song_url, **meta):
+        """
+            Validates and adds a song_url to be played. This does not start the download of the song.
+
+            Returns the entry & the position it is in the queue.
+
+            :param song_url: The song url to add to the playlist.
+            :param meta: Any additional metadata to add to the playlist entry.
+        """
+        entry = await self.parse_entry(song_url, **meta)
         self._add_entry(entry)
         return entry, len(self.entries)
 
@@ -218,8 +228,11 @@ class Playlist(EventEmitter):
 
         return gooditems
 
-    def _add_entry(self, entry):
-        self.entries.append(entry)
+    def _add_entry(self, entry, prepend=False):
+        if prepend:
+            self.entries.insert(0, entry)
+        else:
+            self.entries.append(entry)
         self.emit('entry-added', playlist=self, entry=entry)
 
         if self.peek() is entry:

@@ -842,7 +842,13 @@ class MusicBot(discord.Client):
         except:
             raise exceptions.CommandError('Invalid URL provided:\n{}\n'.format(server_link), expire_in=30)
 
+    async def cmd_playnext(self, player, channel, author, permissions, leftover_args, song_url):
+        return await self.internal_play(player, channel, author, permissions, leftover_args, song_url, True)
+
     async def cmd_play(self, player, channel, author, permissions, leftover_args, song_url):
+        return await self.internal_play(player, channel, author, permissions, leftover_args, song_url)
+
+    async def internal_play(self, player, channel, author, permissions, leftover_args, song_url, prepend=False):
         """
         Usage:
             {command_prefix}play song_link
@@ -1003,7 +1009,10 @@ class MusicBot(discord.Client):
                 )
 
             try:
-                entry, position = await player.playlist.add_entry(song_url, channel=channel, author=author)
+                if prepend:
+                    entry, position = await player.playlist.add_next_entry(song_url, channel=channel, author=author)
+                else:
+                    entry, position = await player.playlist.add_entry(song_url, channel=channel, author=author)
 
             except exceptions.WrongEntryTypeError as e:
                 if e.use_url == song_url:
