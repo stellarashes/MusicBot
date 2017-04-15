@@ -6,7 +6,7 @@ from random import shuffle
 
 from .utils import get_header
 from .entry import URLPlaylistEntry
-from .exceptions import ExtractionError, WrongEntryTypeError
+from .exceptions import ExtractionError, WrongEntryTypeError, CommandError
 from .lib.event_emitter import EventEmitter
 
 
@@ -74,6 +74,17 @@ class Playlist(EventEmitter):
             self.downloader.ytdl.prepare_filename(info),
             **meta
         )
+        return entry
+
+    async def promote(self, queue_offset):
+        if queue_offset > len(self.entries):
+            raise CommandError("Queue #%s does not exist; there are currently only %s items in queue" % (queue_offset, len(self.entries)))
+
+        index = queue_offset - 1
+        entry = self.entries[index]
+        del self.entries[index]
+        self.entries.insert(0, entry)
+        entry.get_ready_future()
         return entry
 
     async def add_next_entry(self, song_url, **meta):

@@ -842,13 +842,29 @@ class MusicBot(discord.Client):
         except:
             raise exceptions.CommandError('Invalid URL provided:\n{}\n'.format(server_link), expire_in=30)
 
+    async def cmd_playqueue(self, player, permissions, queue_num):
+        """
+        Usage:
+            {command_prefix}playqueue queue_number
+
+        Moves the song to the front of the playlist.
+        """
+        if not queue_num.isdigit():
+            raise CommandError("Queue # must be a number")
+
+        entry = await player.playlist.promote(int(queue_num))
+        return Response("Queue #%s (%s) has been promoted to the front of the queue" % (queue_num, entry.title), expire_in=30)
+
     async def cmd_playnext(self, player, channel, author, permissions, leftover_args, song_url):
+        """
+        Usage:
+            {command_prefix}playnext song_link
+
+        Adds the song to the front of the play playlist.
+        """
         return await self.internal_play(player, channel, author, permissions, leftover_args, song_url, True)
 
     async def cmd_play(self, player, channel, author, permissions, leftover_args, song_url):
-        return await self.internal_play(player, channel, author, permissions, leftover_args, song_url)
-
-    async def internal_play(self, player, channel, author, permissions, leftover_args, song_url, prepend=False):
         """
         Usage:
             {command_prefix}play song_link
@@ -858,6 +874,9 @@ class MusicBot(discord.Client):
         result from a youtube search is added to the queue.
         """
 
+        return await self.internal_play(player, channel, author, permissions, leftover_args, song_url)
+
+    async def internal_play(self, player, channel, author, permissions, leftover_args, song_url, prepend=False):
         song_url = song_url.strip('<>')
 
         if permissions.max_songs and player.playlist.count_for_user(author) >= permissions.max_songs:
